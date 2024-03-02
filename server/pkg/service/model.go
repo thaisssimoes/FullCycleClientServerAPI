@@ -1,4 +1,8 @@
-package client
+package service
+
+const (
+	_cotacaoUSDBRLURL = "https://economia.awesomeapi.com.br/json/last/USD-BRL"
+)
 
 type CotacaoAtual struct {
 	CotacaoDolarReal USDBRL `json:"USDBRL"`
@@ -10,4 +14,5 @@ type USDBRL struct {
 	Name   string `json:"name,omitempty"`
 	High   string `json:"high,omitempty"`
 	Low    string `json:"low,omitempty"`
+	Bid    string `json:"bid,omitempty"`
 }
