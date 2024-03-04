@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/gin-gonic/gin"
 )
 
 type DB struct {
@@ -22,7 +21,8 @@ func (d DB) CloseConn() {
 	d.db.Close()
 }
 
-func Cotacao(c *gin.Context) {
-	cotacao, _ := c.Get("cotacao")
+func Cotacao(ctx context.Context) {
+	cotacao := ctx.Value("cotacao")
+	cotacao = cotacao
 
 }

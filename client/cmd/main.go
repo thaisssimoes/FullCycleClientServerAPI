@@ -1,18 +1,45 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"time"
+)
+
+const (
+	_localURL   = "http://localhost:8080"
+	_cotacaoURL = "/cotacao"
+
+	_cotacaoTimeout = 300 * time.Millisecond
 )
 
 func main() {
-	r, err := http.Get("http://localhost:8080/cotacao")
+
+	ctx, cancel := context.WithTimeout(context.Background(), _cotacaoTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, _localURL+_cotacaoURL, nil)
 	if err != nil {
+		log.Fatalln(err)
 	}
 
-	defer r.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
 
-	test, _ := io.ReadAll(r.Body)
+	cotacao, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	println(string(test))
+	fmt.Print(string(cotacao))
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+
 }

@@ -1,11 +1,18 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/thaisssimoes/FullCycleClientServerAPI/server/pkg/repository"
+	"io"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	_cotacaoDolarUSBTimeout = 300 * time.Millisecond
 )
 
 func App() {
@@ -21,24 +28,38 @@ func rotas(s *gin.Engine) {
 func Cotacao(c *gin.Context) {
 	var cotacaoDolarReal CotacaoAtual
 
-	r, err := http.Get(_cotacaoUSDBRLURL)
+	ctx, cancel := context.WithTimeout(c, _cotacaoDolarUSBTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, _cotacaoUSDBRLURL, nil)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"message": err,
 		})
 	}
 
-	defer r.Body.Close()
-
-	err = json.NewDecoder(r.Body).Decode(&cotacaoDolarReal)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"message": err,
 		})
 	}
 
-	c.Set("cotacao", cotacaoDolarReal)
-	repository.Cotacao(c)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+
+	err = json.NewDecoder(resp.Body).Decode(&cotacaoDolarReal)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"message": err,
+		})
+	}
+
+	// repository.Cotacao(c)
 
 	c.IndentedJSON(http.StatusOK, cotacaoDolarReal)
 
