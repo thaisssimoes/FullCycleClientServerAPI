@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/thaisssimoes/FullCycleClientServerAPI/server/pkg/repository"
 	"io"
 	"log"
 	"net/http"
@@ -12,7 +14,9 @@ import (
 )
 
 const (
-	_cotacaoDolarUSBTimeout = 300 * time.Millisecond
+	_cotacaoDolarUSDAPITimeout = 300 * time.Millisecond
+
+	_cotacaoUSDBRLURL = "https://economia.awesomeapi.com.br/json/last/USD-BRL"
 )
 
 func App() {
@@ -26,9 +30,15 @@ func rotas(s *gin.Engine) {
 }
 
 func Cotacao(c *gin.Context) {
-	var cotacaoDolarReal CotacaoAtual
+	var cotacaoDolarReal repository.CotacaoAtual
 
-	ctx, cancel := context.WithTimeout(c, _cotacaoDolarUSBTimeout)
+	newDB := repository.NewDB("./db/fullcycle.db")
+	db, err := newDB.Connect()
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(c, _cotacaoDolarUSDAPITimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, _cotacaoUSDBRLURL, nil)
@@ -59,8 +69,12 @@ func Cotacao(c *gin.Context) {
 		})
 	}
 
-	// repository.Cotacao(c)
+	c.Set("cotacao", cotacaoDolarReal)
+	err = repository.InsertCotacao(c, db)
+	if err != nil {
 
-	c.IndentedJSON(http.StatusOK, cotacaoDolarReal)
+	}
+
+	c.IndentedJSON(http.StatusOK, cotacaoDolarReal.CotacaoDolarReal.Bid)
 
 }

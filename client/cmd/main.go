@@ -6,6 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,7 +16,7 @@ const (
 	_localURL   = "http://localhost:8080"
 	_cotacaoURL = "/cotacao"
 
-	_cotacaoTimeout = 300 * time.Millisecond
+	_cotacaoTimeout = 3000 * time.Millisecond
 )
 
 func main() {
@@ -33,7 +36,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Print(string(cotacao))
+	cotacaoFloat, err := strconv.ParseFloat(strings.Trim(string(cotacao), "\""), 64)
+	if err != nil {
+		log.Fatalln("o valor não pode ser convertido para float64. err = v", err)
+	}
+
+	escreverArquivo("./files/cotacao.txt", cotacaoFloat)
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -42,4 +50,23 @@ func main() {
 		}
 	}(resp.Body)
 
+}
+
+func escreverArquivo(path string, cotacao float64) {
+	f, err := os.Create(path)
+	if err != nil {
+		log.Fatalf("erro ao criar o arquivo. err = %v", err)
+	}
+
+	defer f.Close()
+
+	mensagem := fmt.Sprintf("Cotação atual é: %f", cotacao)
+	mensagemByte := []byte(mensagem)
+
+	_, err = f.Write(mensagemByte)
+	if err != nil {
+		log.Fatalf("erro ao escrever no arquivo. err = %v", err)
+	}
+
+	log.Println("arquivo preenchido com sucesso")
 }
