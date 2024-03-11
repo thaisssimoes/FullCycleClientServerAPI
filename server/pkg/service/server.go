@@ -30,6 +30,7 @@ func rotas(s *gin.Engine) {
 }
 
 func Cotacao(c *gin.Context) {
+	var resp *http.Response
 	var cotacaoDolarReal repository.CotacaoAtual
 
 	newDB := repository.NewDB("./db/fullcycle.db")
@@ -43,24 +44,37 @@ func Cotacao(c *gin.Context) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, _cotacaoUSDBRLURL, nil)
 	if err != nil {
-		c.JSON(400, gin.H{
-			"message": err,
+		c.JSON(http.StatusBadRequest, gin.H{
+			"err": err,
 		})
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		c.JSON(400, gin.H{
-			"message": err,
-		})
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil || resp == nil {
+		select {
+		case <-ctx.Done():
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "tempo de contexto do servidor excedido",
+				"err":     err,
+			})
+			log.Printf("tempo de contexto do servidor excedido")
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"err": err,
+			})
+			log.Printf("err = %v", err)
+		}
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&cotacaoDolarReal)
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": err,
 		})
+		log.Printf("err = %v", err)
 	}
+
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -69,11 +83,12 @@ func Cotacao(c *gin.Context) {
 	}(resp.Body)
 
 	c.Set("cotacao", cotacaoDolarReal)
+
 	err = repository.InsertCotacao(c, db)
 	if err != nil {
-
+		log.Printf("erro ao tentar salvar valor no banco de dados. err = %v", err)
 	}
 
-	c.IndentedJSON(http.StatusOK, cotacaoDolarReal.CotacaoDolarReal.Bid)
+	c.IndentedJSON(http.StatusOK, string(cotacaoDolarReal.CotacaoDolarReal.Bid))
 
 }

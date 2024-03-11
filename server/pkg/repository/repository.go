@@ -48,13 +48,13 @@ func InsertCotacao(ctx context.Context, db *sqlx.DB) error {
 
 	select {
 	case <-newCtx.Done():
-		log.Fatalf("tempo de contexto do banco de dados excedido")
+		log.Printf("tempo de contexto do banco de dados excedido")
 	default:
 		_, err = stmt.ExecContext(newCtx, c.CotacaoDolarReal.Code, c.CotacaoDolarReal.CodeIn, c.CotacaoDolarReal.Name, c.CotacaoDolarReal.High,
 			c.CotacaoDolarReal.Low, c.CotacaoDolarReal.VarBid, c.CotacaoDolarReal.PctChange, c.CotacaoDolarReal.Bid,
 			c.CotacaoDolarReal.Ask, c.CotacaoDolarReal.Timestamp, c.CotacaoDolarReal.CreateDate)
 		if err != nil {
-			log.Fatalf("erro ao salvar no banco. err = %v", err)
+			return err
 		}
 	}
 

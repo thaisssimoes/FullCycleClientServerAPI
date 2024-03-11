@@ -21,6 +21,7 @@ const (
 
 func main() {
 	var cotacao []byte
+
 	ctx, cancel := context.WithTimeout(context.Background(), _cotacaoTimeout)
 	defer cancel()
 
@@ -30,21 +31,23 @@ func main() {
 	}
 
 	resp, err := http.DefaultClient.Do(req)
-
-	select {
-	case <-ctx.Done():
-		log.Fatalln("tempo de contexto do request excedido")
-	default:
-		cotacao, err = io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
+	if err != nil {
+		select {
+		case <-ctx.Done():
+			log.Fatalln("tempo de contexto do client excedido")
+		default:
+			log.Fatalf("err= %v", err)
 		}
+	}
 
+	cotacao, err = io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	cotacaoFloat, err := strconv.ParseFloat(strings.Trim(string(cotacao), "\""), 64)
 	if err != nil {
-		log.Fatalln("o valor não pode ser convertido para float64. err = v", err)
+		log.Fatalln("\no valor não pode ser convertido para float64. err = v", err)
 	}
 
 	escreverCotacaoArquivo("./files/cotacao.txt", cotacaoFloat)
@@ -66,12 +69,11 @@ func escreverCotacaoArquivo(path string, cotacao float64) {
 
 	defer f.Close()
 
-	mensagem := fmt.Sprintf("Cotação atual é: %f", cotacao)
-	mensagemByte := []byte(mensagem)
+	mensagem := []byte(fmt.Sprintf("Dólar: %f", cotacao))
 
-	_, err = f.Write(mensagemByte)
+	_, err = f.Write(mensagem)
 	if err != nil {
-		log.Fatalf("erro ao escrever no arquivo. err = %v", err)
+		log.Printf("erro ao escrever no arquivo. err = %v", err)
 	}
 
 	log.Println("arquivo preenchido com sucesso")
