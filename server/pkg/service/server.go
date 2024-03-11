@@ -87,6 +87,7 @@ func Cotacao(c *gin.Context) {
 	err = repository.InsertCotacao(c, db)
 	if err != nil {
 		log.Printf("erro ao tentar salvar valor no banco de dados. err = %v", err)
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
 	}
 
 	c.IndentedJSON(http.StatusOK, string(cotacaoDolarReal.CotacaoDolarReal.Bid))

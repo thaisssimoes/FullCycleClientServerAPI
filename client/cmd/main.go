@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		select {
 		case <-ctx.Done():
-			log.Fatalln("tempo de contexto do client excedido")
+			log.Fatalf("tempo de contexto do client excedido. err = %v", err)
 		default:
 			log.Fatalf("err= %v", err)
 		}

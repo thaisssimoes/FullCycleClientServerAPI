@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
@@ -48,7 +49,7 @@ func InsertCotacao(ctx context.Context, db *sqlx.DB) error {
 
 	select {
 	case <-newCtx.Done():
-		log.Printf("tempo de contexto do banco de dados excedido")
+		return errors.New("tempo de contexto do banco de dados excedido")
 	default:
 		_, err = stmt.ExecContext(newCtx, c.CotacaoDolarReal.Code, c.CotacaoDolarReal.CodeIn, c.CotacaoDolarReal.Name, c.CotacaoDolarReal.High,
 			c.CotacaoDolarReal.Low, c.CotacaoDolarReal.VarBid, c.CotacaoDolarReal.PctChange, c.CotacaoDolarReal.Bid,
