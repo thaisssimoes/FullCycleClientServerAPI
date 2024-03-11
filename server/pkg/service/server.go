@@ -55,19 +55,18 @@ func Cotacao(c *gin.Context) {
 		})
 	}
 
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
-		}
-	}(resp.Body)
-
 	err = json.NewDecoder(resp.Body).Decode(&cotacaoDolarReal)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"message": err,
 		})
 	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	c.Set("cotacao", cotacaoDolarReal)
 	err = repository.InsertCotacao(c, db)

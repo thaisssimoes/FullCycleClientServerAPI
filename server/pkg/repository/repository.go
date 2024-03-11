@@ -5,7 +5,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"time"
 )
+
+const _databaseTimeout = 10 * time.Millisecond
 
 type Config struct {
 	File string
@@ -28,6 +31,9 @@ func (c Config) Connect() (*sqlx.DB, error) {
 func InsertCotacao(ctx context.Context, db *sqlx.DB) error {
 	cotacao := ctx.Value("cotacao")
 
+	newCtx, cancel := context.WithTimeout(ctx, _databaseTimeout)
+	defer cancel()
+
 	c, ok := cotacao.(CotacaoAtual)
 	if !ok {
 	}
@@ -40,11 +46,17 @@ func InsertCotacao(ctx context.Context, db *sqlx.DB) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, c.CotacaoDolarReal.Code, c.CotacaoDolarReal.CodeIn, c.CotacaoDolarReal.Name, c.CotacaoDolarReal.High,
-		c.CotacaoDolarReal.Low, c.CotacaoDolarReal.VarBid, c.CotacaoDolarReal.PctChange, c.CotacaoDolarReal.Bid,
-		c.CotacaoDolarReal.Ask, c.CotacaoDolarReal.Timestamp, c.CotacaoDolarReal.CreateDate)
-	if err != nil {
-		log.Fatalln(err)
+	select {
+	case <-newCtx.Done():
+		log.Fatalf("tempo de contexto do banco de dados excedido")
+	default:
+		_, err = stmt.ExecContext(newCtx, c.CotacaoDolarReal.Code, c.CotacaoDolarReal.CodeIn, c.CotacaoDolarReal.Name, c.CotacaoDolarReal.High,
+			c.CotacaoDolarReal.Low, c.CotacaoDolarReal.VarBid, c.CotacaoDolarReal.PctChange, c.CotacaoDolarReal.Bid,
+			c.CotacaoDolarReal.Ask, c.CotacaoDolarReal.Timestamp, c.CotacaoDolarReal.CreateDate)
+		if err != nil {
+			log.Fatalf("erro ao salvar no banco. err = %v", err)
+		}
 	}
+
 	return nil
 }

@@ -16,11 +16,11 @@ const (
 	_localURL   = "http://localhost:8080"
 	_cotacaoURL = "/cotacao"
 
-	_cotacaoTimeout = 3000 * time.Millisecond
+	_cotacaoTimeout = 300 * time.Millisecond
 )
 
 func main() {
-
+	var cotacao []byte
 	ctx, cancel := context.WithTimeout(context.Background(), _cotacaoTimeout)
 	defer cancel()
 
@@ -31,9 +31,15 @@ func main() {
 
 	resp, err := http.DefaultClient.Do(req)
 
-	cotacao, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
+	select {
+	case <-ctx.Done():
+		log.Fatalln("tempo de contexto do request excedido")
+	default:
+		cotacao, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
 	}
 
 	cotacaoFloat, err := strconv.ParseFloat(strings.Trim(string(cotacao), "\""), 64)
@@ -41,7 +47,7 @@ func main() {
 		log.Fatalln("o valor não pode ser convertido para float64. err = v", err)
 	}
 
-	escreverArquivo("./files/cotacao.txt", cotacaoFloat)
+	escreverCotacaoArquivo("./files/cotacao.txt", cotacaoFloat)
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -52,7 +58,7 @@ func main() {
 
 }
 
-func escreverArquivo(path string, cotacao float64) {
+func escreverCotacaoArquivo(path string, cotacao float64) {
 	f, err := os.Create(path)
 	if err != nil {
 		log.Fatalf("erro ao criar o arquivo. err = %v", err)
